@@ -23,18 +23,19 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.luugiathuy.apps.downloadmanager;
+package sdk.android.downloader;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
+import java.util.List;
 
 public class HttpDownloader extends Downloadable {
 
-	public HttpDownloader(Part part, int numConnections) {
-		super(part, numConnections);
-		download();
+	public HttpDownloader(Part part, int numConnections, String filename) {
+		super(part, numConnections, filename);
+		// download();
 	}
 
 	private void error() {
@@ -97,15 +98,14 @@ public class HttpDownloader extends Downloadable {
 							startByte = endByte + 1;
 							endByte += partSize;
 
-							mPart = new Part(mPart.mURL, mPart.mOutputFile,
-									startByte, endByte);
+							mPart = new Part(mPart.mURL, startByte, endByte);
 							aThread = new HttpDownloadThread(i, mPart);
 							mListDownloadThread.add(aThread);
 							++i;
 						}
 					} else {
 						// mPart.mEndByte = mPart.mFileSize/2;
-						mPart.mStartByte = mPart.mFileSize / 2;
+						// mPart.mStartByte = mPart.mFileSize / 2;
 						mPart.mEndByte = mPart.mFileSize;
 						HttpDownloadThread aThread = new HttpDownloadThread(1,
 								mPart);
@@ -136,10 +136,16 @@ public class HttpDownloader extends Downloadable {
 		}
 	}
 
+	public void downloadParts(List<Part> parts) {
+		HttpDownloadThread aThread = new HttpDownloadThread(1, parts);
+	}
+
 	/**
 	 * Thread using Http protocol to download a part of file
 	 */
 	private class HttpDownloadThread extends DownloadThread {
+
+		private List<Part> parts;
 
 		/**
 		 * @param threadID
@@ -149,29 +155,61 @@ public class HttpDownloader extends Downloadable {
 			super(threadID, part);
 		}
 
+		public HttpDownloadThread(int threadID, List<Part> parts) {
+			super(threadID, parts.get(0));
+			this.parts = parts;
+		}
+
 		@Override
 		public void run() {
+			if (parts != null) {
+				int length = parts.size();
+				for (int i = 0; i < length; i++) {
+					Part p = parts.get(i);
+					down(p);
+				}
+			} else {
+				down(iPart);
+			}
+		}
+
+		private void down(Part part) {
 			BufferedInputStream in = null;
 			RandomAccessFile raf = null;
 
 			try {
 				// open Http connection to URL
-				HttpURLConnection conn = (HttpURLConnection) iPart.mURL
+				HttpURLConnection conn = (HttpURLConnection) part.mURL
 						.openConnection();
-				// set the range of byte to download
-				String byteRange = iPart.mStartByte + "-" + iPart.mEndByte;
-				conn.setRequestProperty("Range", "bytes=" + byteRange);
-				System.out.println("bytes=" + byteRange);
+				if (part.mEndByte != 0) {
+					// set the range of byte to download
+					String byteRange = part.mStartByte + "-" + part.mEndByte;
+					conn.setRequestProperty("Range", "bytes=" + byteRange);
+					System.out.println("bytes=" + byteRange);
+				}
 				conn.connect();// connect to server
+
+				String Content_Type = conn.getHeaderField("Content-Type");
+				System.out.println("Content_Type:" + Content_Type);
 
 				// Make sure the response code is in the 200 range.
 				if (conn.getResponseCode() / 100 != 2) {
 					error();
 				}
+
+				if (part.mEndByte == 0) {
+					long fileLength = DownloadManager
+							.currentLength(mOutputFile);
+
+					System.out.println("fileLength:" + fileLength);
+
+					part.mStartByte = (int) fileLength == -1 ? 0
+							: (int) fileLength;
+				}
 				in = new BufferedInputStream(conn.getInputStream());
 				// open the output file and seek to the start location
-				raf = new RandomAccessFile(iPart.mOutputFile, "rw");
-				raf.seek(iPart.mStartByte);
+				raf = new RandomAccessFile(mOutputFile, "rw");
+				raf.seek(part.mStartByte);
 
 				byte data[] = new byte[BUFFER_SIZE];
 				int numRead;
@@ -179,13 +217,13 @@ public class HttpDownloader extends Downloadable {
 						&& ((numRead = in.read(data, 0, BUFFER_SIZE)) != -1)) {
 					raf.write(data, 0, numRead);
 					// increase the startByte for resume later
-					iPart.mStartByte += numRead;
+					part.mStartByte += numRead;
 					// increase the downloaded size
 					downloaded(numRead);
 				}
 
 				if (mState.isLoading()) {
-					iPart.mIsFinished = true;
+					part.mIsFinished = true;
 				}
 			} catch (IOException e) {
 				error();
@@ -200,6 +238,7 @@ public class HttpDownloader extends Downloadable {
 			}
 
 			System.out.println("End thread " + mThreadID);
+
 		}
 	}
 }

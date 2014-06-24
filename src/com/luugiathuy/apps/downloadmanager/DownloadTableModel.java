@@ -31,6 +31,9 @@ import java.util.Observer;
 import javax.swing.JProgressBar;
 import javax.swing.table.AbstractTableModel;
 
+import sdk.android.downloader.DownloadManager;
+import sdk.android.downloader.Downloadable;
+
 /**
  *  This class manages the download table's data.
  *

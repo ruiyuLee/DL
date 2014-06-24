@@ -1,37 +1,19 @@
-/**
-Copyright (c) 2011-present - Luu Gia Thuy
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
- */
-
-package com.luugiathuy.apps.downloadmanager;
+package sdk.android.downloader;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Observable;
 
+/**
+ * 
+ * @author dayu E-Mail:allnet@live.cn
+ * @date 2014年6月24日
+ *
+ */
 public abstract class Downloadable extends Observable implements Runnable {
 
 	protected Part mPart;
+	protected String mOutputFile;
 
 	/** Number of connections (threads) to download the file */
 	protected int mNumConnections;
@@ -46,8 +28,10 @@ public abstract class Downloadable extends Observable implements Runnable {
 	protected static final int BLOCK_SIZE = 4096;
 	protected static final int BUFFER_SIZE = 4096;
 	protected static final int MIN_DOWNLOAD_SIZE = BLOCK_SIZE * 100;
+	/** The state of the download */
+	protected State mState;
 
-	/** Contants for download's state */
+	/** 下载状态 */
 	public static enum State {
 		// These are the status names.
 		DOWNLOADING(0, "Downloading"), PAUSED(1, "Paused"), COMPLETED(2,
@@ -67,9 +51,6 @@ public abstract class Downloadable extends Observable implements Runnable {
 
 	};
 
-	/** The state of the download */
-	protected State mState;
-
 	/**
 	 * Constructor
 	 * 
@@ -77,9 +58,10 @@ public abstract class Downloadable extends Observable implements Runnable {
 	 * @param outputFolder
 	 * @param numConnections
 	 */
-	protected Downloadable(Part part, int numConnections) {
+	protected Downloadable(Part part, int numConnections, String outputFile) {
 		mPart = part;
-		System.out.println("File name: " + mPart.mOutputFile);
+		mOutputFile = outputFile;
+		System.out.println("File name: " + mOutputFile);
 		mNumConnections = numConnections;
 		mState = State.DOWNLOADING;
 		mDownloaded = 0;
@@ -168,27 +150,8 @@ public abstract class Downloadable extends Observable implements Runnable {
 		notifyObservers();
 	}
 
-	public static class Part {
-		public URL mURL;
-		public String mOutputFile;
-		public int mStartByte;
-		public int mEndByte;
-		public boolean mIsFinished;
-		/** Size of the downloaded file (in bytes) */
-		protected int mFileSize = -1;
-
-		public Part(URL url, String outputFile, int startByte, int endByte) {
-			mURL = url;
-			mOutputFile = outputFile;
-			mStartByte = startByte;
-			mEndByte = endByte;
-			mIsFinished = false;
-		}
-
-	}
-
 	/**
-	 * Thread to download part of a file
+	 * 负责下载数据的线程
 	 */
 	protected abstract class DownloadThread implements Runnable {
 		protected int mThreadID;
@@ -226,4 +189,39 @@ public abstract class Downloadable extends Observable implements Runnable {
 		}
 
 	}
+
+	/**
+	 * 下载片段
+	 * 
+	 * @author dayu E-Mail:allnet@live.cn
+	 * @date 2014年6月24日
+	 * 
+	 */
+	public static class Part {
+		public URL mURL;
+		public int mStartByte;
+		public int mEndByte;
+		public boolean mIsFinished;
+		/** Size of the downloaded file (in bytes) */
+		protected int mFileSize = -1;
+
+		/**
+		 * 下载片段
+		 * 
+		 * @param url
+		 *            下载地址
+		 * @param startByte
+		 *            开始下载位置
+		 * @param endByte
+		 *            终点下载位置，＝0时，下载终点为文件结尾
+		 */
+		public Part(URL url, int startByte, int endByte) {
+			mURL = url;
+			mStartByte = startByte;
+			mEndByte = endByte;
+			mIsFinished = false;
+		}
+
+	}
+
 }

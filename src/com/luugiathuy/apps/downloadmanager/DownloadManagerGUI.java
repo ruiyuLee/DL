@@ -36,7 +36,9 @@ import javax.swing.UIManager;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import com.luugiathuy.apps.downloadmanager.Downloadable.State;
+import sdk.android.downloader.DownloadManager;
+import sdk.android.downloader.Downloadable;
+import sdk.android.downloader.Downloadable.State;
 
 public class DownloadManagerGUI extends javax.swing.JFrame implements Observer{
 
