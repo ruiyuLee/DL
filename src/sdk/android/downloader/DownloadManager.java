@@ -26,17 +26,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 package sdk.android.downloader;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import sdk.android.downloader.Downloadable.Part;
-import net.chilicat.m3u8.Element;
-import net.chilicat.m3u8.Playlist;
 
 public class DownloadManager {
 
@@ -106,70 +100,6 @@ public class DownloadManager {
 		HttpDownloader downloader = new HttpDownloader(parts.get(0), 1,
 				outputFile);
 		downloader.downloadParts(parts);
-	}
-
-	public static void downloadM3u8(String m3u8Url, String outputFile) {
-		if (m3u8Url.contains(".m3u8")) {
-			System.out.println(".m3u8");
-			List<Element> list = testParseM3u8(m3u8Url);
-			List<Part> parts = testToPart(list);
-			DownloadManager.downloadPart(parts, "souhu2.mp4");
-		} else {
-			System.out.println("不是.m3u8");
-			try {
-				Part part = new Part(new URL(m3u8Url), 0, 0);
-				List<Part> list = new ArrayList<Part>(1);
-				list.add(part);
-				DownloadManager.downloadPart(list, "souhu2.mp4");
-			} catch (MalformedURLException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	static List<Element> testParseM3u8(String m3u8Url) {
-		InputStream in = null;
-		try {
-			URI uri = URI.create(m3u8Url);
-			in = uri.toURL().openStream();
-			Playlist playlist = Playlist.parse(in);
-
-			List<Element> list = playlist.getElements();
-			// StringBuffer buffer = new StringBuffer();
-			// for (int i = 0; i < list.size(); i++) {
-			// buffer.append(list.get(i).toString()).append("\n");
-			// }
-			//
-			// System.out.println(buffer.toString());
-			return list;
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (in != null) {
-				try {
-					in.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return null;
-	}
-
-	static List<Part> testToPart(List<Element> list) {
-		int i = 0;
-		int length = 2;
-		List<Part> listPort = new ArrayList<Part>();
-		try {
-			for (; i < length; i++) {
-				Element e = list.get(i);
-				Part part = new Part(e.getURI().toURL(), 0, 0);
-				listPort.add(part);
-			}
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-		return listPort;
 	}
 
 	public static long currentLength(String filename) {
