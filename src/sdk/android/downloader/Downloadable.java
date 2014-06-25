@@ -8,21 +8,22 @@ import java.util.Observable;
  * 
  * @author dayu E-Mail:allnet@live.cn
  * @date 2014年6月24日
- *
+ * 
  */
 public abstract class Downloadable extends Observable implements Runnable {
 
 	protected Part mPart;
 	protected String mOutputFile;
+	public boolean mIsFinished;
 
 	/** Number of connections (threads) to download the file */
 	protected int mNumConnections;
 
 	/** downloaded size of the file (in bytes) */
-	protected int mDownloaded;
+	public int mDownloaded;
 
 	/** List of download threads */
-	protected ArrayList<DownloadThread> mListDownloadThread;
+	protected ArrayList<HttpDownloadThread> mListDownloadThread;
 
 	// Contants for block and buffer size
 	protected static final int BLOCK_SIZE = 4096;
@@ -66,7 +67,7 @@ public abstract class Downloadable extends Observable implements Runnable {
 		mState = State.DOWNLOADING;
 		mDownloaded = 0;
 
-		mListDownloadThread = new ArrayList<DownloadThread>();
+		mListDownloadThread = new ArrayList<HttpDownloadThread>();
 	}
 
 	/**
@@ -151,47 +152,7 @@ public abstract class Downloadable extends Observable implements Runnable {
 	}
 
 	/**
-	 * 负责下载数据的线程
-	 */
-	protected abstract class DownloadThread implements Runnable {
-		protected int mThreadID;
-		protected Thread mThread;
-		protected Part iPart;
-
-		public DownloadThread(int threadID, Part part) {
-			mThreadID = threadID;
-			iPart = part;
-			download();
-		}
-
-		/**
-		 * Get whether the thread is finished download the part of file
-		 */
-		public boolean isFinished() {
-			return iPart.mIsFinished;
-		}
-
-		/**
-		 * Start or resume the download
-		 */
-		public void download() {
-			mThread = new Thread(this);
-			mThread.start();
-		}
-
-		/**
-		 * Waiting for the thread to finish
-		 * 
-		 * @throws InterruptedException
-		 */
-		public void waitFinish() throws InterruptedException {
-			mThread.join();
-		}
-
-	}
-
-	/**
-	 * 下载片段
+	 * 下载片段描述
 	 * 
 	 * @author dayu E-Mail:allnet@live.cn
 	 * @date 2014年6月24日
@@ -201,7 +162,6 @@ public abstract class Downloadable extends Observable implements Runnable {
 		public URL mURL;
 		public int mStartByte;
 		public int mEndByte;
-		public boolean mIsFinished;
 		/** Size of the downloaded file (in bytes) */
 		protected int mFileSize = -1;
 
@@ -219,7 +179,6 @@ public abstract class Downloadable extends Observable implements Runnable {
 			mURL = url;
 			mStartByte = startByte;
 			mEndByte = endByte;
-			mIsFinished = false;
 		}
 
 	}

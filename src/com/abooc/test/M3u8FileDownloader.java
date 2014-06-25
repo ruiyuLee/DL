@@ -5,13 +5,17 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
+import java.util.Observer;
 
 import sdk.android.downloader.DownloadManager;
+import sdk.android.downloader.Downloadable;
 import sdk.android.downloader.Downloadable.Part;
+import sdk.android.util.FileSizer;
+import sdk.android.util.Log;
 
-public class M3u8FileDownloader extends Observable {
-	static String m3u8_url = "http://hot.vrs.sohu.com/ipad113781_4613391929782_434813.m3u8?plat=3";
-	static String image_url = "http://www.sinaimg.cn/dy/slidenews/69_img/2014_25/56732_53864_449154.jpg";
+public class M3u8FileDownloader {
+	public static String m3u8_url = "http://hot.vrs.sohu.com/ipad113781_4613391929782_434813.m3u8?plat=3";
+	public static String image_url = "http://www.sinaimg.cn/dy/slidenews/69_img/2014_25/56732_53864_449154.jpg";
 
 	public static void main(String[] args) {
 		testDownloadImage();
@@ -22,20 +26,30 @@ public class M3u8FileDownloader extends Observable {
 			String outputFile = "56732_53864_449154.jpg";
 			URL url = new URL(image_url);
 			Part part = new Part(url, 0, 256287 / 2);// 下载前一半
-			Part part2 = new Part(url, 0, 256287);// 下载后一半
+			Part part2 = new Part(url, 256287 / 2, 256287);// 下载后一半
 			List<Part> list = new ArrayList<Part>(2);
 			list.add(part);
 			list.add(part2);
-			DownloadManager.downloadPart(list, outputFile);
+			DownloadManager.download(list, outputFile, iObserver);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	
-	
-	
-	
+
+	private static Observer iObserver = new Observer() {
+		@Override
+		public void update(Observable ob, Object o) {
+			Downloadable down = (Downloadable) ob;
+			float progress = down.getProgress();
+			if (down.getState().isLoading() && down.mDownloaded > 200000) {
+				DownloadManager.getInstance().getDownload(0).pause();
+				Log.d("pause()" + down.mDownloaded);
+			}
+			Log.d("progress:" + progress + ", size:"
+					+ (FileSizer.FormetFileSize(down.mDownloaded)));
+		}
+	};
+
 	//
 	// static List<Part> testToPart(List<Element> list) {
 	// int i = 0;

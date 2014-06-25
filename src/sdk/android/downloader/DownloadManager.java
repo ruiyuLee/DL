@@ -29,6 +29,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observer;
 
 import sdk.android.downloader.Downloadable.Part;
 
@@ -96,10 +97,12 @@ public class DownloadManager {
 		return fd;
 	}
 
-	public static void downloadPart(List<Part> parts, String outputFile) {
+	public static void download(List<Part> parts, String outputFile, Observer o) {
 		HttpDownloader downloader = new HttpDownloader(parts.get(0), 1,
 				outputFile);
-		downloader.downloadParts(parts);
+		downloader.addObserver(o);
+		getInstance().mDownloadList.add(downloader);
+		HttpDownloadThread d = new HttpDownloadThread(downloader, 1, parts);
 	}
 
 	public static long currentLength(String filename) {

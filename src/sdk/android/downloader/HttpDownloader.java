@@ -25,11 +25,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 package sdk.android.downloader;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
-import java.util.List;
 
 public class HttpDownloader extends Downloadable {
 
@@ -90,8 +86,8 @@ public class HttpDownloader extends Downloadable {
 						mPart.mStartByte = startByte;
 						mPart.mEndByte = endByte;
 
-						HttpDownloadThread aThread = new HttpDownloadThread(1,
-								mPart);
+						HttpDownloadThread aThread = new HttpDownloadThread(
+								this, 1, mPart);
 						mListDownloadThread.add(aThread);
 						int i = 2;
 						while (endByte < mPart.mFileSize) {
@@ -99,16 +95,14 @@ public class HttpDownloader extends Downloadable {
 							endByte += partSize;
 
 							mPart = new Part(mPart.mURL, startByte, endByte);
-							aThread = new HttpDownloadThread(i, mPart);
+							aThread = new HttpDownloadThread(this, i, mPart);
 							mListDownloadThread.add(aThread);
 							++i;
 						}
 					} else {
-						// mPart.mEndByte = mPart.mFileSize/2;
-						// mPart.mStartByte = mPart.mFileSize / 2;
 						mPart.mEndByte = mPart.mFileSize;
-						HttpDownloadThread aThread = new HttpDownloadThread(1,
-								mPart);
+						HttpDownloadThread aThread = new HttpDownloadThread(
+								this, 1, mPart);
 						mListDownloadThread.add(aThread);
 					}
 				} else { // resume all downloading threads
@@ -136,109 +130,4 @@ public class HttpDownloader extends Downloadable {
 		}
 	}
 
-	public void downloadParts(List<Part> parts) {
-		HttpDownloadThread aThread = new HttpDownloadThread(1, parts);
-	}
-
-	/**
-	 * Thread using Http protocol to download a part of file
-	 */
-	private class HttpDownloadThread extends DownloadThread {
-
-		private List<Part> parts;
-
-		/**
-		 * @param threadID
-		 * @param part
-		 */
-		public HttpDownloadThread(int threadID, Part part) {
-			super(threadID, part);
-		}
-
-		public HttpDownloadThread(int threadID, List<Part> parts) {
-			super(threadID, parts.get(0));
-			this.parts = parts;
-		}
-
-		@Override
-		public void run() {
-			if (parts != null) {
-				int length = parts.size();
-				for (int i = 0; i < length; i++) {
-					Part p = parts.get(i);
-					down(p);
-				}
-			} else {
-				down(iPart);
-			}
-		}
-
-		private void down(Part part) {
-			BufferedInputStream in = null;
-			RandomAccessFile raf = null;
-
-			try {
-				// open Http connection to URL
-				HttpURLConnection conn = (HttpURLConnection) part.mURL
-						.openConnection();
-				if (part.mEndByte != 0) {
-					// set the range of byte to download
-					String byteRange = part.mStartByte + "-" + part.mEndByte;
-					conn.setRequestProperty("Range", "bytes=" + byteRange);
-					System.out.println("bytes=" + byteRange);
-				}
-				conn.connect();// connect to server
-
-				String Content_Type = conn.getHeaderField("Content-Type");
-				System.out.println("Content_Type:" + Content_Type);
-
-				// Make sure the response code is in the 200 range.
-				if (conn.getResponseCode() / 100 != 2) {
-					error();
-				}
-
-				if (part.mEndByte == 0) {
-					long fileLength = DownloadManager
-							.currentLength(mOutputFile);
-
-					System.out.println("fileLength:" + fileLength);
-
-					part.mStartByte = (int) fileLength == -1 ? 0
-							: (int) fileLength;
-				}
-				in = new BufferedInputStream(conn.getInputStream());
-				// open the output file and seek to the start location
-				raf = new RandomAccessFile(mOutputFile, "rw");
-				raf.seek(part.mStartByte);
-
-				byte data[] = new byte[BUFFER_SIZE];
-				int numRead;
-				while ((mState.isLoading())
-						&& ((numRead = in.read(data, 0, BUFFER_SIZE)) != -1)) {
-					raf.write(data, 0, numRead);
-					// increase the startByte for resume later
-					part.mStartByte += numRead;
-					// increase the downloaded size
-					downloaded(numRead);
-				}
-
-				if (mState.isLoading()) {
-					part.mIsFinished = true;
-				}
-			} catch (IOException e) {
-				error();
-			} finally {
-				try {
-					if (raf != null)
-						raf.close();
-					if (in != null)
-						in.close();
-				} catch (IOException e) {
-				}
-			}
-
-			System.out.println("End thread " + mThreadID);
-
-		}
-	}
 }
