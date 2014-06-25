@@ -68,38 +68,23 @@ public class DownloadManager {
 			}
 		};
 
-		/**
-		 * Pause the downloader
-		 */
 		public void pause() {
 			setState(State.PAUSED);
 		}
 
-		/**
-		 * Resume the downloader
-		 */
 		public void resume() {
 			setState(State.DOWNLOADING);
 			download();
 		}
 
-		/**
-		 * Start or resume download
-		 */
 		protected void download() {
 			new Thread(this).start();
 		}
 
-		/**
-		 * Cancel the downloader
-		 */
 		public void cancel() {
 			setState(State.CANCELLED);
 		}
 
-		/**
-		 * Set the state of the downloader
-		 */
 		protected void setState(State state) {
 			mState = state;
 			stateChanged();
